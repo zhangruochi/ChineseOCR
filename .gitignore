@@ -1,0 +1,5 @@
+/models/
+*.jpg
+*.pkl
+*.png
+*.pth
