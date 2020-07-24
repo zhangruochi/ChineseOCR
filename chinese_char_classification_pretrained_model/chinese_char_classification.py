@@ -172,9 +172,9 @@ transforms = A.Compose([
                         A.Rotate(60,interpolation = cv2.INTER_LINEAR),
                         A.CenterCrop(32,32),
                         AddBackgroud(background_img_paths, p = 0.5),
-                        A.HueSaturationValue(p=0.3),
+                        A.HueSaturationValue(p = 0.3),
                         A.RandomBrightnessContrast(p=0.3),
-                        A.ToGray(p=0.5),
+                        A.ToGray(p=0.3),
                         A.Normalize(mean = [0.485, 0.456, 0.406], std = [0.229, 0.224, 0.225]),
                         ToTensor()
                     ])
@@ -221,7 +221,6 @@ class Model(nn.Module):
         base_model_layers = list(base_model.children()) 
         self.body = torch.nn.Sequential(*base_model_layers[4:9])
         
-        
         self.fc = torch.nn.Linear(in_features=512, out_features=n_classes, bias = True)
 
     def forward(self, x):
@@ -264,7 +263,7 @@ def compute_accuracy(model, data_loader, device):
 def train_model(model, data_loader, optimizer, num_epochs,batch_size, device,metric_func, random_seed = 7):
     # Manual seed for deterministic data loader
     torch.manual_seed(random_seed)
-    
+     
     loss_list = []
     valid_acc_list = []
     best_valid_acc = 0
@@ -300,6 +299,11 @@ def train_model(model, data_loader, optimizer, num_epochs,batch_size, device,met
                 print ('Epoch: {0:03d}/{1:03d} | Batch {2:03d}/{3:03d} | Loss: {4:.3f} | Acc: {5:.3f}'.format(
                     epoch+1, num_epochs, batch_idx, 
                          len(train_dataset)//batch_size, loss, train_acc))
+                
+                with open("train_log","a") as f:
+                    f.write('Epoch: {0:03d}/{1:03d} | Batch {2:03d}/{3:03d} | Loss: {4:.3f} | Acc: {5:.3f} \n'.format(
+                        epoch+1, num_epochs, batch_idx, 
+                            len(train_dataset)//batch_size, loss, train_acc))
         
         end = time.time()
         with torch.set_grad_enabled(False):
@@ -308,6 +312,10 @@ def train_model(model, data_loader, optimizer, num_epochs,batch_size, device,met
             
             print('Epoch: {0:03d}/{1:03d} | val acc: {2:.3f} % | time: {3:.3f} s'.format(
                   epoch+1, num_epochs, valid_acc, end-start))
+
+            with open("train_log","a") as f:
+                f.write('Epoch: {0:03d}/{1:03d} | val acc: {2:.3f} % | time: {3:.3f} s \n'.format(
+                      epoch+1, num_epochs, valid_acc, end-start))
             
             if not os.path.exists("../models/ocr_pretrained_model_checkpoint"):
                 os.mkdir("../models/ocr_pretrained_model_checkpoint")

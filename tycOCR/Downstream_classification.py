@@ -29,7 +29,7 @@ from pathlib import Path
 ## Hyper-parameters
 
 BATCH_SIZE = 16
-NUM_EPOCHS = 10
+NUM_EPOCHS = 20
 LEARNING_RATE = 0.0001
 RANDOM_SEED = 42
 
@@ -163,6 +163,10 @@ val_dataloader = DataLoader(dataset = val_dataset,
 dataset_loader = {"train": train_dataloader, "val": val_dataloader}
 
 
+with open("../models/tyc_model_checkpoint/cache.pkl", "wb") as f:
+    pkl.dump({"index2char": dataset.index2char},f)
+
+
 
 class Model(nn.Module):
     def __init__(self, n_classes):
@@ -175,13 +179,9 @@ class Model(nn.Module):
         )
         
         base_model = torchvision.models.resnet34(pretrained=True)
-#         for param in base_model.parameters():
-#             param.requires_grad = False 
-
         base_model_layers = list(base_model.children()) 
+        
         self.body = torch.nn.Sequential(*base_model_layers[4:9])
-        
-        
         self.fc = torch.nn.Linear(in_features=512, out_features=n_classes, bias = True)
     
     
@@ -199,21 +199,14 @@ class DownstreamModel(nn.Module):
         
                 
         self.upstream_model = Model(n_classes = 3755)
-        checkpoint = torch.load("../models/ocr_pretrained_model_checkpoint/best_model.pt")
+        checkpoint = torch.load("../OCR/models/ocr_pretrained_model_checkpoint/best_model.pt")
         self.upstream_model.load_state_dict(checkpoint["model_state_dict"])
         
         in_features = self.upstream_model.fc.in_features
-        
-#         for param in self.upstream_model.parameters():
-#             param.requires_grad = False 
-            
         self.upstream_model.fc = torch.nn.Linear(in_features=in_features, out_features=n_classes, bias = True)
-    
-    
+
     def forward(self, x):
-#         x,_ = self.upstream_model(x)
         logits,probas = self.upstream_model(x)
-#         probas = F.softmax(logits, dim = 1)
         return logits,probas
 
 
@@ -280,7 +273,12 @@ def train_model(model, data_loader, optimizer, num_epochs,batch_size, device,met
             
             if batch_idx % 100 == 0:
                 
-                print ('Epoch: {0:03d}/{1:03d} | Batch {2:03d}/{3:03d} | Loss: {4:.3f} | Acc: {5:.3f}'.format(
+                print('Epoch: {0:03d}/{1:03d} | Batch {2:03d}/{3:03d} | Loss: {4:.3f} | Acc: {5:.3f} % \n'.format(
+                    epoch+1, num_epochs, batch_idx, 
+                         len(train_dataset)//batch_size, loss, train_acc))
+                
+                with open("train_log", "a") as f:
+                    f.write('Epoch: {0:03d}/{1:03d} | Batch {2:03d}/{3:03d} | Loss: {4:.3f} | Acc: {5:.3f} % \n'.format(
                     epoch+1, num_epochs, batch_idx, 
                          len(train_dataset)//batch_size, loss, train_acc))
         
@@ -290,6 +288,10 @@ def train_model(model, data_loader, optimizer, num_epochs,batch_size, device,met
             valid_acc = metric_func(model, data_loader["val"], device)
             
             print('Epoch: {0:03d}/{1:03d} | val acc: {2:.3f} % | time: {3:.3f} s'.format(
+                  epoch+1, num_epochs, valid_acc, end-start))
+            
+            with open("train_log","a") as f:
+                f.write('Epoch: {0:03d}/{1:03d} | val acc: {2:.3f} % | time: {3:.3f} s \n'.format(
                   epoch+1, num_epochs, valid_acc, end-start))
             
             if not os.path.exists("../models/tyc_model_checkpoint"):
@@ -312,11 +314,3 @@ def train_model(model, data_loader, optimizer, num_epochs,batch_size, device,met
     model.load_state_dict(checkpoint["model_state_dict"])
             
     return model, loss_list, valid_acc_list
-
-model, loss_list, valid_acc_list = train_model(model, 
-            dataset_loader, 
-            optimizer, 
-            NUM_EPOCHS, 
-            device = DEVICE, 
-            batch_size = BATCH_SIZE,
-            metric_func = compute_accuracy)

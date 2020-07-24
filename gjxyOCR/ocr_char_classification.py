@@ -18,33 +18,6 @@ from pathlib import Path
 
 test_image_path = Path("characters_cuts")
 
-## Helpers
-
-def show_batch(x,y,shape = None):
-    """
-    input: 
-        x(Tensor[num_images, rows, columns]): images tensor
-        y(array): labels
-        shape(tuple): (rows,col) 
-    output:
-        grid of smaple images
-    """
-
-    if not shape:
-        shape = (int(x.shape[0]**0.5), int(x.shape[0]**0.5))
-
-    fig, axs = plt.subplots(nrows= shape[0], ncols=shape[1], figsize = (12,8))
-    index = 0
-    for row in axs:
-        for ax in row:
-            ax.imshow(x[index])
-            ax.set_xlabel(y[index], )
-            index+=1
-
-    # plt.subplots_adjust(wspace = 0.2, hspace = 0.5) 
-    fig.tight_layout()
-    plt.show()
-
 chars = set()
 for p in test_image_path.glob("*.png"):
     chars.add(p.name.split(".")[0])
@@ -157,9 +130,9 @@ test_data_transform = T.Compose([
 ])
 
 
-train_dataset = CaptchaDataset(chars, font_paths, train = True, transforms = train_transforms,multiple= 30)
-val_dataset = CaptchaDataset(chars, font_paths, train = True, transforms = train_transforms,multiple=5)
-test_dataset = TestDataset(chars, test_image_path,test_data_transform)
+train_dataset = CaptchaDataset(chars, font_paths, train = True, transforms = train_transforms,multiple = 30)
+val_dataset = CaptchaDataset(chars, font_paths, train = True, transforms = train_transforms,multiple = 5)
+test_dataset = TestDataset(chars, test_image_path,test_data_transform) 
 
 
 train_dataloader = DataLoader(dataset = train_dataset,
@@ -178,6 +151,9 @@ test_dataloader = torch.utils.data.DataLoader(test_dataset,
                                                   shuffle = False)
 
 dataset_loader = {"train": train_dataloader, "val": val_dataloader, "test": test_dataloader}
+
+with open("../models/gj_model_checkpoint/cache.pkl", "wb") as f:
+    pkl.dump({"index2char": train_dataset.index2char},f)
 
 
 class Model(nn.Module):
@@ -305,6 +281,11 @@ def train_model(model, data_loader, optimizer, num_epochs,batch_size, device,met
                 print ('Epoch: {0:03d}/{1:03d} | Batch {2:03d}/{3:03d} | Loss: {4:.3f}'.format(
                     epoch+1, num_epochs, batch_idx, 
                          len(train_dataset)//batch_size, loss))
+
+                with open("train_log", "a") as f:
+                    f.write('Epoch: {0:03d}/{1:03d} | Batch {2:03d}/{3:03d} | Loss: {4:.3f} \n'.format(
+                    epoch+1, num_epochs, batch_idx, 
+                         len(train_dataset)//batch_size, loss))
         
         end = time.time()
         with torch.set_grad_enabled(False):
@@ -313,6 +294,11 @@ def train_model(model, data_loader, optimizer, num_epochs,batch_size, device,met
             
             print('Epoch: {0:03d}/{1:03d} train acc: {2:.3f} % | val acc: {3:.3f} % | time: {4:.3f} s'.format(
                   epoch+1, num_epochs, train_acc, valid_acc, end-start))
+
+            with open("train_log", "a") as f:
+                f.write('Epoch: {0:03d}/{1:03d} train acc: {2:.3f} % | val acc: {3:.3f} % | time: {4:.3f} s \n'.format(
+                  epoch+1, num_epochs, train_acc, valid_acc, end-start))
+
             
             if not os.path.exists("../models/gj_model_checkpoint/"):
                 os.mkdir("../models/gj_model_checkpoint/")
