@@ -1,7 +1,9 @@
-./OCR/models/
-./app/split_ocr_images/output/
+models/*
+output/*
 *.jpg
 *.pkl
 *.png
 *.pth
 *.h5
+*.pyc
+.DS_Store
