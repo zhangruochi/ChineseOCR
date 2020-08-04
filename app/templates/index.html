@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+
+  <!-- <link href="//maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
+  <script src="//maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script> -->
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
+
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script type="text/javascript" src="/static/js/script.js"></script>
+    <title>HILab</title>
+
+  </head>
+
+
+  <body>
+
+  <section >
+    <div class="overlay-wcs"></div>
+    <div class="container h-100">
+      <div class="d-flex h-100 text-center align-items-center">
+        <div class="w-100 text-white text-center">
+          <br>
+          <br>
+          <br>
+          <br>
+          <br>
+          <br>
+          <h1>dVirusSeverity</h1>
+          <h3>COVID-19 virus infection severity detection system, v1.0</h3>
+          <p style="color: #d3d3d3">This detection server is for the research purpose only. Please contact the authors for any other purposes, including clinical practices or commercial applications.</p>
+          <p style="color: #d3d3d3">Fengfeng Zhou: <a href="mailto:ffzhou@jlu.edu.cn">ffzhou@jlu.edu.cn</a> or <a href="mailto:FengfengZhou@gmail.com">FengfengZhou@gmail.com</a></p>
+          <p style="color: #d3d3d3">Ruochi Zhang: <a href="mailto:zrc720@gmail.com">zrc720@gmail.com</a></p>
+        </div>
+      </div>
+    </div>
+</section>
+    
+    <div class="row">
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        {% for message in messages %}
+          {% if message.null %}
+            <br>
+            <br>
+            <br>
+            <div class="alert alert-danger col-lg-8 offset-lg-2" role="alert"><h3 align="center">{{ message.msg }}</h3></div>
+          {% else %}
+              <div class="alert alert-success col-lg-8 offset-lg-2" role="alert">
+                  <h3 class="alert-heading" align="center">Detected as a <strong>{{ message.label }}</strong> case, and the probability is <strong>{{ message.output }}</strong></h3>                
+                  <hr>
+                  <p class="mb-0">The detection probability ranges between <strong>[0,1]</strong>. A higher probability indicates that the query patient is more likely to carry severe symptoms. The suggested threshold <strong>{{ message.threshold }}</strong> is the optimal threshold for our model. And by default, a patient with detection probability higher than <strong>{{ message.threshold }}</strong> is detected as a severely ill case.</p>
+              </div>
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+  </div>
+
+      
+    <form action="{{ url_for('home') }}" name="myForm" method="POST">
+
+    <div class="row">
+      <div class="container">
+
+        <h2>Clinical Information</h2>
+        
+        <div>
+          {% if example.get('Sex',"") == 0 %}
+            <select class="form-control col-lg-2 offset-lg-5" name="Sex">
+              <option value="2" >Choose Sex Type</option>
+              <option value="0" selected>Male</option>
+              <option value="1" >Female</option>
+            </select>
+          {% elif example.get('Sex',"") == 1 %}
+            <select class="form-control col-lg-2 offset-lg-5" name="Sex">
+                <option value="2" >Choose Sex Type</option>
+                <option value="0" >Male</option>
+                <option value="1" selected>Female</option>
+              </select>
+          {% else %}
+            <select class="form-control col-lg-2 offset-lg-5" name="Sex">
+                <option value="2" selected>Choose Sex Type</option>
+                <option value="0" >Male</option>
+                <option value="1" >Female</option>
+              </select>
+          {%endif%}
+          <br>
+        </div>
+
+
+        <h2>Blood Test</h2>
+
+          <div class="col-3" data-toggle="tooltip" data-placement="Top" title="Neutrophil percentage(%): 40.0-75.0">
+            <input name="Blood | Neutrophil percentage" type="text" class="effect-1" pattern="(-?\d+)(\.\d+)?" placeholder="Neutrophil Percentage" value="{{ example.get('Blood | Neutrophil percentage', '') }}" />
+            <span class="focus-border"></span>
+          </div>
+
+          <div class="col-3" data-toggle="tooltip" data-placement="Top" title="Monocyte percentage(MO%): 3.0-10.0" >
+            <input name="Blood | Monocyte percentage" type="text" class="effect-1" pattern="(-?\d+)(\.\d+)?" placeholder="Monocyte Percentage" value="{{ example.get('Blood | Monocyte percentage', '') }}">
+            <span class="focus-border"></span>
+          </div>
+
+          <div class="col-3" data-toggle="tooltip" data-placement="Top" title="Neutrophil Number(10^9/L): 1.80-6.30" >
+            <input name="Blood | Neutrophil Number" type="text" class="effect-1" pattern="(-?\d+)(\.\d+)?" placeholder="Neutrophil Number" value="{{ example.get('Blood | Neutrophil Number', '')}}">
+            <span class="focus-border"></span>
+          </div>
+
+          <div class="col-3" data-toggle="tooltip" data-placement="Top" title="Leucocytes(10^9/L): 3.50-9.50">
+            <input name="Blood | Leucocytes" type="text" class="effect-1" pattern="(-?\d+)(\.\d+)?" placeholder="Leucocytes" value="{{ example.get('Blood | Leucocytes', '')}}">
+            <span class="focus-border"></span>
+          </div>
+
+          <div class="col-3" data-toggle="tooltip" data-placement="Top" title="Basophil percentage(%): 0.0-1.0">
+            <input name="Blood | Basophil percentage" type="text" class="effect-1" pattern="(-?\d+)(\.\d+)?" placeholder="Basophil Percentage" value="{{ example.get('Blood | Basophil percentage', '')}}">
+            <span class="focus-border"></span>
+          </div>
+
+          <div class="col-3" data-toggle="tooltip" data-placement="Top" title="Packed cell volume(%): 40.0-50.0">
+            <input name="Blood | Packed cell volume" type="text" class="effect-1" pattern="(-?\d+)(\.\d+)?" placeholder="Packed Cell Volume" value="{{ example.get('Blood | Packed cell volume', '')}}">
+            <span class="focus-border"></span>
+          </div>
+
+          <div class="col-3" data-toggle="tooltip" data-placement="Top" title="RBC distribution width SD(fL): 39.0-46.0">
+            <input name="Blood | RBC distribution width SD" type="text" class="effect-1" pattern="(-?\d+)(\.\d+)?" placeholder="RBC Distribution Width SD" value="{{ example.get('Blood | RBC distribution width SD', '')}}">
+            <span class="focus-border"></span>
+          </div>
+
+          <div class="col-3" data-toggle="tooltip" data-placement="Top" title="Eosinophil percentage(EO%): 0.40-8.0">
+            <input name="Blood | Eosinophil percentage" type="text" class="effect-1" pattern="(-?\d+)(\.\d+)?" placeholder="Eosinophil Percentage" value="{{ example.get('Blood | Eosinophil percentage', '')}}">
+            <span class="focus-border"></span>
+          </div>
+
+          <div class="col-3" data-toggle="tooltip" data-placement="Top" title="Platelet distribution width(fL): 13.4">
+            <input name="Blood | Platelet distribution width" type="text" class="effect-1" pattern="(-?\d+)(\.\d+)?" placeholder="Platelet Distribution Width" value="{{ example.get('Blood | Platelet distribution width', '')}}">
+            <span class="focus-border"></span>
+          </div>
+
+          <div class="col-3" data-toggle="tooltip" data-placement="Top" title="RBC distribution width CV(f/L): ＜14.9">
+            <input name="Blood | RBC distribution width CV" type="text" class="effect-1" pattern="(-?\d+)(\.\d+)?" placeholder="RBC Distribution Width CV" value="{{ example.get('Blood | RBC distribution width CV', '')}}">
+            <span class="focus-border"></span>
+          </div>
+    
+
+
+        <h4><hr></h4>
+
+          <div class="col-3" data-toggle="tooltip" data-placement="Top" title="Calcium(mmol/L): 2.15-2.50" >
+            <input name="Blood | Calcium" type="text" class="effect-1" pattern="(-?\d+)(\.\d+)?" placeholder="Calcium" value="{{ example.get('Blood | Calcium', '') }}" >
+            <span class="focus-border"></span>
+          </div>
+
+          <div class="col-3" data-toggle="tooltip" data-placement="Top" title="Chlorine(mmol/L): 99-110">
+            <input name="Blood | Chlorine" type="text" class="effect-1" pattern="(-?\d+)(\.\d+)?" placeholder="Chlorine" value="{{ example.get('Blood | Chlorine', '')}}">
+            <span class="focus-border"></span>
+          </div>
+
+          <div class="col-3" data-toggle="tooltip" data-placement="Top" title="Sodium(mmol/L): 136-145">
+            <input name="Blood | Sodium" type="text" class="effect-1" pattern="(-?\d+)(\.\d+)?" placeholder="Sodium" value="{{ example.get('Blood | Sodium', '')}}">
+            <span class="focus-border"></span>
+          </div>
+
+
+        <h4><hr></h4>
+
+          <div class="col-3" data-toggle="tooltip" data-placement="Top" title="Alanine aminotransferase(u/L) ≤41">
+            <input name="Blood | Alanine aminotransferase" type="text" class="effect-1" pattern="(-?\d+)(\.\d+)?" placeholder="Alanine Aminotransferase" value="{{ example.get('Blood | Alanine aminotransferase', '')}}">
+            <span class="focus-border"></span>
+          </div>
+          
+          <div class="col-3" data-toggle="tooltip" data-placement="Top" title="Aspartase aminotransferase(u/L): ≤40">
+            <input name="Blood | Aspartase aminotransferase" type="text" class="effect-1" pattern="(-?\d+)(\.\d+)?" placeholder="Aspartase Aminotransferase" value="{{ example.get('Blood | Aspartase aminotransferase', '')}}">
+            <span class="focus-border"></span>
+          </div>
+
+          <div class="col-3" data-toggle="tooltip" data-placement="Top" title="Alkaline phosphatase(u/L): 40-130" >
+            <input name="Blood | Alkaline phosphatase" type="text" class="effect-1" pattern="(-?\d+)(\.\d+)?" placeholder="Alkaline Phosphatase" value="{{ example.get('Blood | Alkaline phosphatase', '')}}">
+            <span class="focus-border"></span>
+          </div>
+
+          <div class="col-3" data-toggle="tooltip" data-placement="Top" title= "Total bilirubin(umol/L): 20-40">
+            <input name="Blood | Total bilirubin" type="text" class="effect-1" pattern="(-?\d+)(\.\d+)?" placeholder="Total Bilirubin" value="{{ example.get('Blood | Total bilirubin', '')}}">
+            <span class="focus-border"></span>
+          </div>
+  
+
+        <h4><hr></h4>
+          <div class="col-3" data-toggle="tooltip" data-placement="Top" title= "Interleukin-2R(U/mL) :223-710">
+            <input name="Blood | Interleukin-2R" type="text" class="effect-1" pattern="(-?\d+)(\.\d+)?" placeholder="Interleukin-2R" value="{{ example.get('Blood | Interleukin-2R', '')}}">
+            <span class="focus-border"></span>
+          </div>
+
+          <div class="col-3" data-toggle="tooltip" data-placement="Top" title="Tumor necrosis factor-α(pg/mL): ＜8.1">
+            <input name="Blood | Tumor necrosis factor-α" type="text" class="effect-1" pattern="(-?\d+)(\.\d+)?" placeholder="Tumor Necrosis Factor-α" value="{{ example.get('Blood | Tumor necrosis factor-α', '')}}">
+            <span class="focus-border"></span>
+          </div>
+        
+
+
+
+        <h4><hr></h4>
+
+          <div class="col-3" data-toggle="tooltip" data-placement="Top" title="Glucose(mmol/L): 4.11-6.05">
+            <input name="Blood | Glucose" type="text" class="effect-1" pattern="(-?\d+)(\.\d+)?" placeholder="Glucose" value="{{ example.get('Blood | Glucose', '')}}">
+            <span class="focus-border"></span>
+          </div>
+        
+
+        <h4><hr></h4>
+          <div class="col-3" data-toggle="tooltip" data-placement="Top" title="Thrombin time(s): 14.0-19.0">
+            <input name="Blood | Thrombin time" type="text" class="effect-1" pattern="(-?\d+)(\.\d+)?" placeholder="Thrombin Time" value="{{ example.get('Blood | Thrombin time', '') }}">
+            <span class="focus-border"></span>
+          </div>
+      
+
+
+        <h4><hr></h4>
+          <div class="col-3" data-toggle="tooltip" data-placement="Top" title="hs-CRP(mg/L): < 1">
+            <input name="Blood | hs-CRP" type="text" class="effect-1" pattern="(-?\d+)(\.\d+)?" placeholder="hs-CRP" value="{{ example.get('Blood | hs-CRP', '')}}">
+            <span class="focus-border"></span>
+          </div>
+ 
+        
+        <h4><hr></h4>
+      
+          <div class="col-3" data-toggle="tooltip" data-placement="Top" title="Total carbon dioxide(mmol/L): 24.00-32.00">
+            <input name="Blood | Total carbon dioxide" type="text" class="effect-1" pattern="(-?\d+)(\.\d+)?" placeholder="Total Carbon Dioxide" value="{{ example.get('Blood | Total carbon dioxide', '')}}">
+            <span class="focus-border"></span>
+          </div>
+
+
+        <h4><hr></h4>
+
+          <div class="col-3" data-toggle="tooltip" data-placement="Top" title="Serum ferritin(ug/L): 30-400">
+            <input name="Blood | Serum ferritin" type="text" class="effect-1" pattern="(-?\d+)(\.\d+)?" placeholder="Serum Ferritin" value="{{ example.get('Blood | Serum ferritin', '')}}">
+            <span class="focus-border"></span>
+          </div>
+
+
+
+        <h2>Urine Test</h2>
+
+        <div class="col-3" data-toggle="tooltip" data-placement="Top" title="Urine protein(Negative/Other/Positive): 0 / 0.5 / 1">
+          <input name="Urine | Urine protein" type="text" class="effect-1" pattern="(-?\d+)(\.\d+)?" placeholder="Urine Protein" value="{{ example.get('Urine | Urine protein', '')}}">
+          <span class="focus-border"></span>
+        </div>
+
+        <div class="col-3" data-toggle="tooltip" data-placement="Top" title="Red blood cell(Negative/Other/Positive): 0 / 0.5 / 1">
+          <input name="Urine | Red blood cell(occult)" type="text" class="effect-1" pattern="(-?\d+)(\.\d+)?" placeholder="Red blood cell(occult)" placeholder="Red Blood Cell(occult)" value="{{ example.get('Urine | Red blood cell(occult)', '')}}">
+          <span class="focus-border"></span>
+        </div>
+
+        <div class="col-3" data-toggle="tooltip" data-placement="Top" title="pH(Urine): 4.50-8.00">
+          <input name="Urine | PH(Urine)" type="text" class="effect-1" pattern="(-?\d+)(\.\d+)?" placeholder="pH(Urine)" value="{{ example.get('Urine | PH(Urine)', '')}}">
+          <span class="focus-border"></span>
+        </div>
+        
+
+        <h2>Predict</h2>
+
+        </div>
+      </div>
+          
+        <br>
+        <div>
+          <button type="submit" class="btn btn-outline-dark predict col-lg-4 offset-lg-4" data-toggle="tooltip" data-placement="Top" title="Submit to Predict">Submit</button>
+        </div>
+      </form>
+
+      
+        <br>
+        <div>
+        <form action="{{ url_for('positive') }}" method="POST">
+          <button type="submit" class="btn btn-outline-dark predict col-lg-4 offset-lg-4" data-toggle="tooltip" data-placement="Top" title="Simulated postive example data">Positive Example</button>
+        </form>
+        </div>
+        <br>
+
+        <div>
+        <form action="{{ url_for('negative') }}" method="POST">
+          <button type="submit" class="btn btn-outline-dark predict col-lg-4 offset-lg-4" data-toggle="tooltip" data-placement="Top" title="Simulated negative example data">Negtive Example</button>
+        </form>
+      </div>
+
+
+    <br>
+    <br>  
+    <br>
+    <br>  
+
+
+    <!-- Footer -->
+      <footer class="page-footer font-small blue">
+        <!-- Copyright -->
+        <div class="footer-copyright text-center py-3">
+          <p>Copyright © 2020 - 2020 
+          <a href="http://www.healthinformaticslab.org"> HILab</a></p>
+        </div>
+        <!-- Copyright -->
+
+      </footer>
+    <!-- Footer -->
+    <script>
+      $(document).ready(function(){
+        $('[data-toggle="tooltip"]').tooltip(); 
+      });
+    </script>
+  </body>
+</html>
