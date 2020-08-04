@@ -6,4 +6,5 @@ output/*
 *.pth
 *.h5
 *.pyc
+*.pt
 .DS_Store
