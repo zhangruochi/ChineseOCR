@@ -1,5 +1,7 @@
-/models/
+./OCR/models/
+./app/split_ocr_images/output/
 *.jpg
 *.pkl
 *.png
 *.pth
+*.h5
