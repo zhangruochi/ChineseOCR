@@ -152,12 +152,12 @@ train_dataset, val_dataset = utils.data.random_split(dataset,[train_length, val_
 
 train_dataloader = DataLoader(dataset = train_dataset,
                              batch_size=BATCH_SIZE,
-                             num_workers=4,
+                             #num_workers=4,
                              shuffle=True)
 
 val_dataloader = DataLoader(dataset = val_dataset,
                              batch_size=BATCH_SIZE,
-                             num_workers=4,
+                             #num_workers=4,
                              shuffle=False)
 
 dataset_loader = {"train": train_dataloader, "val": val_dataloader}
@@ -178,7 +178,9 @@ class Model(nn.Module):
             torch.nn.ReLU(inplace=True)
         )
         
-        base_model = torchvision.models.resnet34(pretrained=True)
+        base_model = torchvision.models.resnet34(pretrained=False)
+        checkpoint = torch.load("../models/pretrained_models/resnet34-333f7ec4.pth")
+        base_model.load_state_dict(checkpoint)
         base_model_layers = list(base_model.children()) 
         
         self.body = torch.nn.Sequential(*base_model_layers[4:9])
@@ -199,7 +201,7 @@ class DownstreamModel(nn.Module):
         
                 
         self.upstream_model = Model(n_classes = 3755)
-        checkpoint = torch.load("../OCR/models/ocr_pretrained_model_checkpoint/best_model.pt")
+        checkpoint = torch.load("../models/ocr_pretrained_model_checkpoint/best_model.pt")
         self.upstream_model.load_state_dict(checkpoint["model_state_dict"])
         
         in_features = self.upstream_model.fc.in_features
@@ -260,7 +262,7 @@ def train_model(model, data_loader, optimizer, num_epochs,batch_size, device,met
             
             _, predicted_labels = torch.max(probas, 1)
             correct_pred = (predicted_labels == targets).sum()
-            train_acc = correct_pred.float() / target.size(0) * 100
+            train_acc = correct_pred.float() / targets.size(0) * 100
             
             # backward pass
             # clear the gradients of all tensors being optimized
@@ -314,3 +316,12 @@ def train_model(model, data_loader, optimizer, num_epochs,batch_size, device,met
     model.load_state_dict(checkpoint["model_state_dict"])
             
     return model, loss_list, valid_acc_list
+
+
+model, loss_list, valid_acc_list = train_model(model, 
+            dataset_loader, 
+            optimizer, 
+            NUM_EPOCHS, 
+            device = DEVICE, 
+            batch_size = BATCH_SIZE,
+            metric_func = compute_accuracy)
