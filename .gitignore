@@ -7,4 +7,6 @@ models/*
 *.h5
 *.pyc
 *.pt
+*.weights
+*.cfg
 .DS_Store
