@@ -6,6 +6,7 @@ from ModelClass import DownstreamModel, Model, CharClassificationModel, GJImageM
 
 import cv2
 import base64
+from io import BytesIO
 import argparse
 import os
 import pickle as pkl
@@ -18,11 +19,13 @@ import albumentations as A
 from albumentations.pytorch import ToTensor
 from torchvision import transforms as T
 
-import tensorflow as tf
+from PIL import Image
+
+## api from yolov4
+from interface import split_img
+from yolov4_pytorch.yolo import YOLO
 
 ## api from jone
-from split_ocr_images.lib.nets.vgg16 import vgg16
-from split_ocr_images.interface import split_img
 from gj_interface import cut_single_txt
 
 
@@ -32,7 +35,6 @@ app.secret_key = 'dev'
 
 
 split_model = None
-split_sess = None
 
 tyc_model = None
 tyc_index2char = None
@@ -59,19 +61,6 @@ with open("../OCR/models/gj_model_checkpoint/cache.pkl", "rb") as f:
 
 with open("../OCR/models/gj_image_model_checkpoint/cache.pkl", "rb") as f:
         gj_image_index2class = pkl.load(f)["index2char"]
-
-
-
-CLASSES = ('__background__',
-           # 'aeroplane', 'bicycle', 'bird', 'boat',
-           # 'bottle', 'bus', 'car', 'cat', 'chair',
-           # 'cow', 'diningtable', 'dog', 'horse',
-           # 'motorbike', 'person', 'pottedplant',
-           # 'sheep', 'sofa', 'train', 'tvmonitor',
-           'cchart')
-
-NETS = {'vgg16': ('vgg16_faster_rcnn_iter_1000.ckpt',), 'res101': ('res101_faster_rcnn_iter_110000.ckpt',)}
-DATASETS = {'pascal_voc': ('voc_2007_trainval',), 'pascal_voc_0712': ('voc_2007_trainval+voc_2012_trainval',)}
 
 
 use_gpu = False
@@ -137,50 +126,12 @@ def load_gj_image_model():
     if use_gpu:
         gj_image_model.cuda() 
 
-def parse_args():
-    """Parse input arguments."""
-    parser = argparse.ArgumentParser(description='Tensorflow Faster R-CNN demo')
-    parser.add_argument('--net', dest='demo_net', help='Network to use [vgg16 res101]',
-                        choices=NETS.keys(), default='vgg16')
-    parser.add_argument('--dataset', dest='dataset', help='Trained dataset [pascal_voc pascal_voc_0712]',
-                        choices=DATASETS.keys(), default='pascal_voc')
-    args = parser.parse_args()
-
-    return args  
 
 def load_split_model():
+    global split_model
 
-    global split_model, sess
-
-    args = parse_args()
-
-    # model path
-    demonet = args.demo_net
-    dataset = args.dataset
-    tfmodel = os.path.join(os.getcwd(), 'split_ocr_images/output', demonet, DATASETS[dataset][0], 'default', NETS[demonet][0])
+    split_model = YOLO()
     
-    if not os.path.isfile(tfmodel + '.meta'):
-        raise IOError(('{:s} not found.\nDid you download the proper networks from '
-                       'our server and place them properly?').format(tfmodel + '.meta'))
-
-    # set config
-    tfconfig = tf.ConfigProto(allow_soft_placement=True)
-    tfconfig.gpu_options.allow_growth = True
-
-    # init session
-    sess = tf.Session(config=tfconfig)
-    # load network
-    if demonet == 'vgg16':
-        split_model = vgg16(batch_size=1)
-    else:
-        raise NotImplementedError
-
-    n_classes = len(CLASSES)
-    # create the structure of the net having a certain shape (which depends on the number of classes)
-    split_model.create_architecture(sess, "TEST", n_classes,
-                            tag='default', anchor_scales=[8, 16, 32])
-    saver = tf.train.Saver()
-    saver.restore(sess, tfmodel) 
 
 def split_gj(raw_image, crop_area):
     """
@@ -242,11 +193,10 @@ def pretrained_predict():
     if request.method  == 'POST':
 
         ## base64 format
-        image = base64.b64decode(str(request.form['image']))
-        image = np.fromstring(image, np.uint8)
-        image = cv2.imdecode(image, cv2.IMREAD_COLOR)
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        splited_images,locations = split_img(sess,split_model,image)
+        byte_data = base64.b64decode(str(request.form['image']))
+        image_data = BytesIO(byte_data)
+        image = Image.open(image_data)
+        splited_images, locations = split_img(split_model, image)
 
         res = []
 
@@ -281,17 +231,19 @@ def tyc_predict():
     if request.method  == 'POST':
 
         ## base64 format
-        image = base64.b64decode(str(request.form['image']))
-        image = np.fromstring(image, np.uint8)
-        image = cv2.imdecode(image, cv2.IMREAD_COLOR)
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        splited_images,locations = split_img(sess,split_model,image)
+        byte_data = base64.b64decode(str(request.form['image']))
+        # image = np.fromstring(byte_data, np.uint8)
+        # image = cv2.imdecode(image, cv2.IMREAD_COLOR)
+        # image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        image_data = BytesIO(byte_data)
+        image = Image.open(image_data)
+        splited_images,locations = split_img(split_model,image)
 
         res = []
 
         # Classify the input image and then initialize the list of predictions to return to the client.
         
-        for i,(image, location) in enumerate(zip(splited_images, locations)):
+        for i, (image, location) in enumerate(zip(splited_images, locations)):
             pred_char = predict_one(
                 tyc_model, image, test_transform, tyc_index2char)
             res.append({"label": pred_char, "location": location})
@@ -360,14 +312,18 @@ def gj_predict():
     # Return the data dictionary as a JSON response.
     return flask.jsonify(data)
 
+def prepare_app():
 
-
-if __name__ == "__main__":
     load_split_model()
     load_tyc_model()
     load_pretrained_model()
     load_gj_char_model()
     load_gj_image_model()
+
+
+prepare_app()
+
+if __name__ == "__main__":
     app.run(host="0.0.0.0", port = 5000)
 
     # image = cv2.imread("test_images/1/猿_4.png")

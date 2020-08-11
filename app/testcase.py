@@ -60,15 +60,13 @@ def test_tyc_valid_images():
         
 if __name__ == '__main__':
     
-    # with open("/home/ruochi/Downloads/1.png","rb") as f: 
+    # with open("./yolov4_pytorch/img/hanzi_2.png","rb") as f: 
     #      base64_data = base64.b64encode(f.read())
-
     # print(tyc_predict(base64_data))
     # print(pretrained_predict(base64_data))
 
     # with open("/home/ruochi/Downloads/2.jpg", "rb") as f:
     #     base64_data = base64.b64encode(f.read())
-
     # print(gj_predict(base64_data))
     test_tyc_valid_images()
 
